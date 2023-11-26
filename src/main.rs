@@ -11,5 +11,5 @@ fn main() {
 
     let n_found: u32 = solve();
 
-    println!("Found {n_found} solutions.");
+    println!("Found {n_found} solution(s).");
 }

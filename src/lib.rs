@@ -1,10 +1,270 @@
 use std::collections::HashMap;
 
 pub fn solve() -> u32 {
-    let mut n_solutions = 0;
     let tiles = define_tiles();
+    let mut board = Board::new();
+    let mut n_solutions = 0;
+
+    for (i, &ref tile) in tiles.iter().enumerate() {
+        board.place_tile(i, &tile);
+    }
+
+    board.pretty_print();
 
     n_solutions
+}
+
+struct Board<'a> {
+    // These are the indexes of the board's slots:
+    //   0 1 2
+    //   3 4 5
+    //   6 7 8
+    slots: [Option<&'a Tile>; 9],
+}
+
+impl<'a> Board<'a> {
+    fn new() -> Board<'a> {
+        Board {
+            slots: [None, None, None, None, None, None, None, None, None],
+        }
+    }
+
+    fn place_tile(&mut self, slot_idx: usize, tile: &'a Tile) {
+        match self.slots[slot_idx] {
+            Some(_) => {
+                panic!("Slot {} already taken", slot_idx);
+            }
+            None => {
+                self.slots[slot_idx] = Some(tile);
+            }
+        }
+    }
+
+    fn pretty_print(&self) {
+        println!();
+
+        // TODO: use box formatting unicode characters... more pretty
+        println!("┌─────┬─────┬─────╮");
+
+        for row in 0..=2 {
+            let tile0 = self.slots[3 * row];
+            let tile1 = self.slots[3 * row + 1];
+            let tile2 = self.slots[3 * row + 2];
+
+            // TODO: better: get colors for all edges?
+            // Or just switch to index-based representation?
+
+            // first character row
+            print!("│");
+
+            // TODO: map chars to terminal colors... use iterator probably?
+            let (edge_colors, is_main) = Self::edge_colors_top(tile0);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!(" {} {} │", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_top(tile1);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!(" {} {} │", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_top(tile2);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            println!(" {} {} │", strings_to_print[0], strings_to_print[1]);
+
+            // second character row
+            print!("│");
+
+            // TODO: map chars to terminal colors... use iterator probably?
+            let (edge_colors, is_main) = Self::edge_colors_lr_upper(tile0);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_lr_upper(tile1);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_lr_upper(tile2);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            println!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            // third character row
+            print!("│");
+
+            // TODO: map chars to terminal colors... use iterator probably?
+            let (edge_colors, is_main) = Self::edge_colors_lr_lower(tile0);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_lr_lower(tile1);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            let (edge_colors, is_main) = Self::edge_colors_lr_lower(tile2);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            println!("{}   {}│", strings_to_print[0], strings_to_print[1]);
+
+            // fourth character row
+            print!("│");
+
+            // TODO: map chars to terminal colors... use iterator probably?
+            let (edge_colors, is_main) = Self::edge_colors_bottom(tile0);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!(" {} {} │", strings_to_print[1], strings_to_print[0]);
+
+            let (edge_colors, is_main) = Self::edge_colors_bottom(tile1);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            print!(" {} {} │", strings_to_print[1], strings_to_print[0]);
+
+            let (edge_colors, is_main) = Self::edge_colors_bottom(tile2);
+            let strings_to_print = Self::to_terminal_chars(&edge_colors, is_main);
+            println!(" {} {} │", strings_to_print[1], strings_to_print[0]);
+
+            if row < 2 {
+                println!("├─────┼─────┼─────┤");
+            } else {
+                println!("╰─────┴─────┴─────╯");
+            }
+        }
+        println!();
+    }
+
+    fn edge_colors_top(tile: Option<&Tile>) -> ([Color; 2], bool) {
+        match tile {
+            Some(tile) => {
+                let shown_edges = tile.colors[&tile.side_shown];
+
+                let top_edge_idx = match tile.orientation {
+                    North => 0,
+                    East => 3,
+                    South => 2,
+                    West => 1,
+                };
+
+                return (shown_edges[top_edge_idx], tile.orientation == North);
+            }
+            None => {
+                return ([Color::Undefined, Color::Undefined], false);
+            }
+        }
+    }
+
+    fn edge_colors_bottom(tile: Option<&Tile>) -> ([Color; 2], bool) {
+        match tile {
+            Some(tile) => {
+                let shown_edges = tile.colors[&tile.side_shown];
+
+                let bottom_edge_idx = match tile.orientation {
+                    North => 2,
+                    East => 1,
+                    South => 0,
+                    West => 3,
+                };
+
+                return (shown_edges[bottom_edge_idx], tile.orientation == South);
+            }
+            None => {
+                return ([Color::Undefined, Color::Undefined], false);
+            }
+        }
+    }
+
+    // TODO: need two bools! for each color, they are on separate edges
+    // TODO: change to return colors for all at once? and idx based representation?
+    fn edge_colors_lr_upper(tile: Option<&Tile>) -> ([Color; 2], bool) {
+        match tile {
+            Some(tile) => {
+                let shown_edges = tile.colors[&tile.side_shown];
+
+                let left_edge_idx = match tile.orientation {
+                    North => 3,
+                    East => 2,
+                    South => 1,
+                    West => 0,
+                };
+                let right_edge_idx = match tile.orientation {
+                    North => 1,
+                    East => 0,
+                    South => 3,
+                    West => 2,
+                };
+
+                return (
+                    [
+                        shown_edges[left_edge_idx][1],
+                        shown_edges[right_edge_idx][0],
+                    ],
+                    tile.orientation == West,
+                );
+            }
+            None => {
+                return ([Color::Undefined, Color::Undefined], false);
+            }
+        }
+    }
+
+    // TODO: need two bools! for each color, they are on separate edges
+    // TODO: change to return colors for all at once? and idx based representation?
+    fn edge_colors_lr_lower(tile: Option<&Tile>) -> ([Color; 2], bool) {
+        match tile {
+            Some(tile) => {
+                let shown_edges = tile.colors[&tile.side_shown];
+
+                let left_edge_idx = match tile.orientation {
+                    North => 3,
+                    East => 2,
+                    South => 1,
+                    West => 0,
+                };
+                let right_edge_idx = match tile.orientation {
+                    North => 1,
+                    East => 0,
+                    South => 3,
+                    West => 2,
+                };
+
+                return (
+                    [
+                        shown_edges[left_edge_idx][0],
+                        shown_edges[right_edge_idx][1],
+                    ],
+                    tile.orientation == West,
+                );
+            }
+            None => {
+                return ([Color::Undefined, Color::Undefined], false);
+            }
+        }
+    }
+
+    fn to_terminal_chars(colors: &[Color; 2], main_edge: bool) -> [String; 2] {
+        let mut result = [String::from(""), String::from("")];
+
+        for (i, color) in colors.iter().enumerate() {
+            let to_print: String;
+
+            // TODO: have color codes in constants!
+            if main_edge {
+                to_print = match color {
+                    Undefined => String::from("\x1b[7m \x1b[0m"),
+                    Red => String::from("\x1b[7m\x1b[31mR\x1b[0m"),
+                    Blue => String::from("\x1b[7m\x1b[34mB\x1b[0m"),
+                    Green => String::from("\x1b[7m\x1b[32mG\x1b[0m"),
+                    Yellow => String::from("\x1b[7m\x1b[33mY\x1b[0m"),
+                };
+            } else {
+                to_print = match color {
+                    Undefined => String::from(" "),
+                    Red => String::from("\x1b[31mR\x1b[0m"),
+                    Blue => String::from("\x1b[34mB\x1b[0m"),
+                    Green => String::from("\x1b[32mG\x1b[0m"),
+                    Yellow => String::from("\x1b[33mY\x1b[0m"),
+                };
+            }
+
+            result[i] = to_print;
+        }
+
+        result
+    }
 }
 
 #[derive(Eq, PartialEq, Hash)]
@@ -13,6 +273,7 @@ enum TileSide {
     Back,
 }
 
+#[derive(PartialEq)]
 enum Orientation {
     North,
     East,
@@ -20,12 +281,13 @@ enum Orientation {
     West,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Color {
     Red,
     Blue,
     Green,
     Yellow,
+    Undefined, // for when we need to return a Color, but there is none (e.g. missing tile)
 }
 
 use crate::Color::*;
@@ -52,9 +314,9 @@ use crate::TileSide::*;
 type TileFace = [[Color; 2]; 4]; // 4 edgese, each with two colors
 
 struct Tile {
-    side_shown: TileSide,
-    orientation: Orientation,            // orientation of the reference edge
-    colors: HashMap<TileSide, TileFace>, // TODO: let it be a tuple... with exactly two items
+    pub side_shown: TileSide,
+    pub orientation: Orientation, // orientation of the reference edge
+    pub colors: HashMap<TileSide, TileFace>, // TODO: let it be a tuple... with exactly two items
 }
 
 impl Tile {
