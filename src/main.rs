@@ -7,9 +7,9 @@
 use rubiks_tangle::solve;
 
 fn main() {
-    println!("Solving ther Rubik's tangle puzzle...");
+    println!("Solving the Rubik's tangle puzzle...");
 
     let n_found: u32 = solve();
 
-    println!("Found {n_found} solution(s).");
+    println!("*** SOLUTIONS FOUND: \x1b[1m{n_found}\x1b[0m");
 }
