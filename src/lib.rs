@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -20,79 +19,34 @@ pub fn solve() -> u32 {
 }
 
 fn find_solutions(board: &mut Board, unplaced_tiles: HashSet<Rc<Tile>>) -> u32 {
-    // println!("Called find_solutions, {} unplaced tiles left", unplaced_tiles.len());
-    // board.pretty_print();
-
-    // pojdi skozi vse tiles ki se niso polozeni
-    // - za vsak tile:
-    //     - za vse mozne rotacije (front/back, orientacija)
-    //         - polozi tile na board, ce lahko
-    //             - ce je zadnji tile -> imamo resitev, print board, povecaj n_solutions
-    //             - ce ni zadnji tile, resu podproblem find_solutions(0 z novim boardom in enim
-    //               manj unplaced_tiles)
-    //         - ce ne mores postavit, poskusi naslednjo rotacijo
-
-    // let mut my_copy: HashSet<&Tile> = HashSet::new();
-    // my_copy.extend(unplaced_tiles.iter());
-
-    // let mut my_copy: Vec<_> = unplaced_tiles.drain().collect();
-    // let mut unplaced_tiles_cp = unplaced_tiles.clone();
-
-    // for tile in my_copy.iter() {
-    // for ref mut tile in &mut my_copy {
-    // for ref mut tile in &mut my_copy {
-    // for (i, tile_ref) in unplaced_tiles.iter().enumerate() {
-
     let mut n_solutions = 0;
-
     let mut tiles_to_check = unplaced_tiles.clone();
 
     for tile in unplaced_tiles.iter().cloned() {
-        // todo: for every possible roation (fornt/back, 4 orientations)
         for side in [TileSide::Front, TileSide::Back].iter() {
-            // println!("Changing side shown to {:?}...", side);
-            // board.pretty_print();
-            tile.set_side_shown(&side);
-            // println!("...changed side shown to {:?}", side);
-            // board.pretty_print();
-            // println!();
-            // let _x = 1;
+            tile.set_side_shown(side);
 
             for orientation in [North, East, South, West].iter() {
-                // println!("Changing orientation to {:?}...", orientation);
-                // board.pretty_print();
-
-                tile.set_orientation(&orientation);
-
-                // println!("...changed orientation to {:?}", orientation);
-                // board.pretty_print();
+                tile.set_orientation(orientation);
 
                 unsafe { COMBOS_TRIED += 1 };
-                if !board.can_place(&*tile) {
+                if !board.can_place(&tile) {
                     continue;
+                } else {
+                    board.place_tile(Rc::clone(&tile));
+                    tiles_to_check.remove(&tile);
                 }
 
-                // println!("Placing a board tile...");
-                board.place_tile(Rc::clone(&tile));
-                tiles_to_check.remove(&tile);
-
-                // board.pretty_print();
-
-                // TODO: check if solutions.. count not None!
-                if tiles_to_check.len() == 0 {
+                if tiles_to_check.is_empty() {
                     n_solutions += 1;
                     println!("Found a solution!");
                     board.pretty_print();
                 } else {
                     n_solutions += find_solutions(board, tiles_to_check.clone());
-                    // println!("...back from recursive call");
                 }
 
-                // board.pretty_print();
-                // println!("Removing a board tile...");
-                tiles_to_check.insert(Rc::clone(&tile));
                 board.remove_tile();
-                // board.pretty_print();
+                tiles_to_check.insert(Rc::clone(&tile));
             }
         }
     }
@@ -169,12 +123,11 @@ impl Board {
                         let visible_colors =
                             existing_tile.colors[&*existing_tile.side_shown.borrow()];
 
-                        // TODO: pick edge based on orientation!
-                        let adj = idx_adjust(&*existing_tile.orientation.borrow());
+                        let adj = idx_adjust(&existing_tile.orientation.borrow());
                         let existing_edge = visible_colors[(2 + adj) % 4];
 
-                        let adj = idx_adjust(&*tile.orientation.borrow());
-                        let new_edge = tile.colors[&*tile.side_shown.borrow()][(0 + adj) % 4]; // North edge
+                        let adj = idx_adjust(&tile.orientation.borrow());
+                        let new_edge = tile.colors[&*tile.side_shown.borrow()][adj % 4]; // North edge
 
                         if new_edge[0] != existing_edge[1] || new_edge[1] != existing_edge[0] {
                             return false;
@@ -196,11 +149,11 @@ impl Board {
                         let visible_colors =
                             existing_tile.colors[&*existing_tile.side_shown.borrow()];
 
-                        let adj = idx_adjust(&*existing_tile.orientation.borrow());
+                        let adj = idx_adjust(&existing_tile.orientation.borrow());
                         let existing_edge = visible_colors[(3 + adj) % 4]; // West edge
 
-                        let adj = idx_adjust(&*tile.orientation.borrow());
-                        let new_edge = tile.colors[&*tile.side_shown.borrow()][(1 + adj) % 4]; // East edge
+                        let adj = idx_adjust(&tile.orientation.borrow());
+                        let new_edge = tile.colors[&tile.side_shown.borrow()][(1 + adj) % 4]; // East edge
 
                         if new_edge[0] != existing_edge[1] || new_edge[1] != existing_edge[0] {
                             return false;
@@ -222,10 +175,10 @@ impl Board {
                         let visible_colors =
                             existing_tile.colors[&*existing_tile.side_shown.borrow()];
 
-                        let adj = idx_adjust(&*existing_tile.orientation.borrow());
-                        let existing_edge = visible_colors[(0 + adj) % 4]; // North edge
+                        let adj = idx_adjust(&existing_tile.orientation.borrow());
+                        let existing_edge = visible_colors[adj % 4]; // North edge
 
-                        let adj = idx_adjust(&*tile.orientation.borrow());
+                        let adj = idx_adjust(&tile.orientation.borrow());
                         let new_edge = tile.colors[&*tile.side_shown.borrow()][(2 + adj) % 4]; // South edge
 
                         if new_edge[0] != existing_edge[1] || new_edge[1] != existing_edge[0] {
@@ -248,10 +201,10 @@ impl Board {
                         let visible_colors =
                             existing_tile.colors[&*existing_tile.side_shown.borrow()];
 
-                        let adj = idx_adjust(&*existing_tile.orientation.borrow());
+                        let adj = idx_adjust(&existing_tile.orientation.borrow());
                         let existing_edge = visible_colors[(1 + adj) % 4]; // East edge
 
-                        let adj = idx_adjust(&*tile.orientation.borrow());
+                        let adj = idx_adjust(&tile.orientation.borrow());
                         let new_edge = tile.colors[&*tile.side_shown.borrow()][(3 + adj) % 4]; // West edge
 
                         if new_edge[0] != existing_edge[1] || new_edge[1] != existing_edge[0] {
@@ -266,9 +219,6 @@ impl Board {
     }
 
     fn place_tile(&mut self, tile: Rc<Tile>) {
-        /////////////
-        let _is_ok = self.can_place(&*tile);
-        ///
         match self.slots[self.first_empty_idx] {
             Some(_) => {
                 panic!("Slot {} already taken", self.first_empty_idx);
@@ -410,7 +360,7 @@ impl Board {
                     West => 1,
                 };
 
-                return [
+                [
                     (
                         shown_edges[top_edge_idx][0],
                         *tile.orientation.borrow() == North,
@@ -419,11 +369,9 @@ impl Board {
                         shown_edges[top_edge_idx][1],
                         *tile.orientation.borrow() == North,
                     ),
-                ];
+                ]
             }
-            None => {
-                return [(Color::Undefined, false), (Color::Undefined, false)];
-            }
+            None => [(Color::Undefined, false), (Color::Undefined, false)],
         }
     }
 
@@ -439,7 +387,7 @@ impl Board {
                     West => 3,
                 };
 
-                return [
+                [
                     (
                         shown_edges[bottom_edge_idx][0],
                         *tile.orientation.borrow() == South,
@@ -448,11 +396,9 @@ impl Board {
                         shown_edges[bottom_edge_idx][1],
                         *tile.orientation.borrow() == South,
                     ),
-                ];
+                ]
             }
-            None => {
-                return [(Color::Undefined, false), (Color::Undefined, false)];
-            }
+            None => [(Color::Undefined, false), (Color::Undefined, false)],
         }
     }
 
@@ -476,7 +422,7 @@ impl Board {
                     West => 2,
                 };
 
-                return [
+                [
                     (
                         shown_edges[left_edge_idx][1],
                         *tile.orientation.borrow() == West,
@@ -485,11 +431,9 @@ impl Board {
                         shown_edges[right_edge_idx][0],
                         *tile.orientation.borrow() == East,
                     ),
-                ];
+                ]
             }
-            None => {
-                return [(Color::Undefined, false), (Color::Undefined, false)];
-            }
+            None => [(Color::Undefined, false), (Color::Undefined, false)],
         }
     }
 
@@ -513,7 +457,7 @@ impl Board {
                     West => 2,
                 };
 
-                return [
+                [
                     (
                         shown_edges[left_edge_idx][0],
                         *tile.orientation.borrow() == West,
@@ -522,11 +466,9 @@ impl Board {
                         shown_edges[right_edge_idx][1],
                         *tile.orientation.borrow() == East,
                     ),
-                ];
+                ]
             }
-            None => {
-                return [(Color::Undefined, false), (Color::Undefined, false)];
-            }
+            None => [(Color::Undefined, false), (Color::Undefined, false)],
         }
     }
 
@@ -534,26 +476,24 @@ impl Board {
         let mut result = [String::from(""), String::from("")];
 
         for (i, (color, is_main)) in colors.iter().enumerate() {
-            let to_print: String;
-
             // TODO: have color codes in constants!
-            if *is_main {
-                to_print = match color {
+            let to_print = if *is_main {
+                match color {
                     Undefined => String::from("\x1b[7m \x1b[0m"),
                     Red => String::from("\x1b[7m\x1b[31mR\x1b[0m"),
                     Blue => String::from("\x1b[7m\x1b[34mB\x1b[0m"),
                     Green => String::from("\x1b[7m\x1b[32mG\x1b[0m"),
                     Yellow => String::from("\x1b[7m\x1b[33mY\x1b[0m"),
-                };
+                }
             } else {
-                to_print = match color {
+                match color {
                     Undefined => String::from(" "),
                     Red => String::from("\x1b[31mR\x1b[0m"),
                     Blue => String::from("\x1b[34mB\x1b[0m"),
                     Green => String::from("\x1b[32mG\x1b[0m"),
                     Yellow => String::from("\x1b[33mY\x1b[0m"),
-                };
-            }
+                }
+            };
 
             result[i] = to_print;
         }
@@ -777,7 +717,7 @@ impl Tile {
 fn define_tiles() -> HashSet<Rc<Tile>> {
     let mut tiles = HashSet::new();
 
-    let mut sequence = (1..).into_iter();
+    let mut sequence = 1..;
 
     let tile = Tile::new(
         sequence.next().unwrap(),
