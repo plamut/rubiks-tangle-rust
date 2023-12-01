@@ -5,11 +5,12 @@
 // TODO: learn how to write proper docstrings, generate local docs
 
 use rubiks_tangle::solve;
+use rubiks_tangle::TerminalStyle::{BOLD, RESET};
 
 fn main() {
     println!("Solving the Rubik's tangle puzzle...");
 
     let n_found: u32 = solve();
 
-    println!("*** SOLUTIONS FOUND: \x1b[1m{n_found}\x1b[0m");
+    println!("*** SOLUTIONS FOUND: {BOLD}{n_found}{RESET}");
 }
