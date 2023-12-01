@@ -144,7 +144,7 @@ fn define_tiles() -> HashSet<Rc<Tile>> {
     tiles
 }
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq)]
+#[derive(Clone, Copy, Hash, PartialEq)]
 enum Color {
     Red,
     Blue,
@@ -153,13 +153,13 @@ enum Color {
     Undefined, // for when we need to return a Color, but there is none (e.g. missing tile)
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum TileSide {
     Front,
     Back,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Orientation {
     North,
     East,
@@ -167,7 +167,6 @@ enum Orientation {
     West,
 }
 
-#[derive(Eq, Hash, PartialEq)]
 enum RelPlacement {
     Top,
     Right,
@@ -196,7 +195,6 @@ use crate::TileSide::*;
 // would physically turn the tile face down and then enumerating the colors that we see)
 type TileFace = [[Color; 2]; 4]; // 4 edgese, each with two colors
 
-#[derive(Clone, Debug)]
 struct Tile {
     pub id: u32,
     pub side_shown: RefCell<TileSide>,
@@ -208,11 +206,11 @@ use std::hash::{Hash, Hasher};
 
 impl Hash for Tile {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for edge in self.colors[&Front] {
+        for edge in &self.colors[&Front] {
             edge[0].hash(state);
             edge[1].hash(state);
         }
-        for edge in self.colors[&Back] {
+        for edge in &self.colors[&Back] {
             edge[0].hash(state);
             edge[1].hash(state);
         }
