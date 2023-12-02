@@ -1,3 +1,11 @@
+//! # Rubik's Tangle
+//!
+//! `rubiks_tangle` contains a solver for the 3x3 double-sided Rubik's tangle puzzle.
+//!
+//! See the following link to get an idea what the puzzle is about:
+//! <https://www.jaapsch.net/puzzles/tangle.htm>
+//!
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -5,6 +13,7 @@ use std::rc::Rc;
 
 static mut COMBOS_TRIED: u32 = 0; // Yes, I'm still an overly optimistic n00b :)
 
+/// A collection of terminal escape sequences for changing the appearance of the text.
 #[allow(non_snake_case)]
 pub mod TerminalStyle {
     pub const RESET: &str = "\x1b[0m";
@@ -16,12 +25,16 @@ pub mod TerminalStyle {
     pub const YELLOW: &str = "\x1b[33m";
 }
 
+/// Solves the 3x3 Rubik's tangle puzzle and returns the number of solutions found.
+///
+/// NOTE: The function does not attempt to remove duplicates, i.e. solutions that are
+/// essentially identical to each other, but merely rotated on the board.
 pub fn solve() -> u32 {
     use TerminalStyle::{BOLD, RESET};
 
     let mut board = Board::new();
 
-    #[allow(clippy::mutable_key_type)]  // Tile's hash does not use mutable fields
+    #[allow(clippy::mutable_key_type)] // Tile's hash does not use mutable fields
     let unplaced_tiles = define_tiles();
 
     let n_solutions = find_solutions(&mut board, &unplaced_tiles);
@@ -33,7 +46,17 @@ pub fn solve() -> u32 {
     n_solutions
 }
 
-#[allow(clippy::mutable_key_type)]  // Tile's hash does not use mutable fields
+/// Recursively tries to find the solution given a `Board` with some placed tiles and
+/// a set of tiles that are yet to be placed.
+///
+/// Returns the umber of solutions found.
+///
+/// # Arguments
+///
+/// * `board` - A board with maybe some tiles already placed on it.
+/// * `unplaced_tiles` - A set of remaining tiles not yet placed on the board.
+///
+#[allow(clippy::mutable_key_type)] // Tile's hash does not use mutable fields
 fn find_solutions(board: &mut Board, unplaced_tiles: &HashSet<Rc<Tile>>) -> u32 {
     let mut n_solutions = 0;
     let mut tiles_to_check = unplaced_tiles.clone();
@@ -72,7 +95,16 @@ fn find_solutions(board: &mut Board, unplaced_tiles: &HashSet<Rc<Tile>>) -> u32 
     n_solutions
 }
 
-#[allow(clippy::mutable_key_type)]  // Tile's hash does not use mutable fields
+/// Creates a set of unique game tiles with predefined colors on each side.
+///
+/// This function initializes and returns a `HashSet`` containing `Rc<Tile>` objects,
+/// each representing a reference of one of the tiles in the game
+///
+/// # Returns
+///
+/// A set of pointers to the tiles used in the game.
+///
+#[allow(clippy::mutable_key_type)] // Tile's hash does not use mutable fields
 fn define_tiles() -> HashSet<Rc<Tile>> {
     let mut tiles = HashSet::new();
 
@@ -178,23 +210,25 @@ use crate::Color::*;
 use crate::Orientation::*;
 use crate::TileSide::*;
 
-
-// 2 colors per edge (first and second, in clockwise direction), four edges altogether.
-// The first edge is a reference edge of the tile, and its color indices are 0 and 1,
-// respectively.
-// If we enumerate the tile colors in clockwise direction, the reference edge contains
-// the colors (0, 1), the next edge the colors (2, 3) and so on.
-//
-//  0 1
-// 7   2
-// 6   3
-//  5 4
-//
-// NOTE: When the indexes are used to enumerate the tile's back side, we pretend that we
-// can "see through" the tile when placed face up (as oposed to an alternative where we
-// would physically turn the tile face down and then enumerating the colors that we see)
 type TileFace = [[Color; 2]; 4]; // 4 edgese, each with two colors
 
+/// A representation of a tile in the game.
+///
+/// Each tile has a front and the back side, and on each side it has 2 colored rope ends
+/// on each of the four edges.
+///
+/// The `Tile` holds an identifier, a list of rope end colors on each of its edges, and
+/// the information about the tile's placement - which side is face up and what the
+/// orientation is with respect to the reference edge. The edges are enumerated in a
+/// clockwise direction:
+///
+/// ````
+///  0 0
+/// 3   1
+/// 3   1
+///  2 2
+///```
+/// `
 struct Tile {
     pub id: u32,
     pub side_shown: RefCell<TileSide>,
@@ -262,6 +296,11 @@ impl Tile {
         *self.orientation.borrow_mut() = *new_orientation;
     }
 
+    /// Returns the pair of rope colors on the given edge while considering the tile's
+    /// current orientation.
+    ///
+    /// The colors returned are ordered as if we were traversing along the tile's edges
+    /// in the clockwise direction.
     fn edge_colors(&self, side: &RelPlacement) -> [Color; 2] {
         use Orientation::*;
         use RelPlacement::*;
@@ -289,6 +328,8 @@ impl Tile {
         shown_edges[edge_idx]
     }
 
+    /// Checks if another tile can be placed next to one of the tile's edges while not
+    /// violating the edge colors (the rope colors on the adjacent edge need to match).
     fn can_adjoin(&self, other_tile: &Tile, side: &RelPlacement) -> bool {
         let our_colors = self.edge_colors(side);
 
@@ -306,11 +347,16 @@ impl Tile {
     }
 }
 
+/// Representation of the 3x3 playing board.
+///
+/// Board's slots are enumerated frop lefto right, top to bottom starting in the top left
+/// corner as shown below:
+/// ````
+///  0 1 2
+///  3 4 5
+///  6 7 8
+/// ````
 struct Board {
-    // These are the indexes of the board's slots:
-    //   0 1 2
-    //   3 4 5
-    //   6 7 8
     slots: Vec<Option<Rc<Tile>>>,
     pub first_empty_idx: usize,
 }
@@ -337,6 +383,8 @@ impl Board {
         [Some(5), None, None, Some(7)],
     ];
 
+    /// Returns `true` if a tile can be placed on the first free slot while matching the
+    /// rope colors on the edges of existing neighboring tiles on the board.
     fn can_place(&self, tile: &Tile) -> bool {
         let slot_idx = self.first_empty_idx;
         let adjacent_indexes = Self::ADJACENCIES[slot_idx];
@@ -366,6 +414,12 @@ impl Board {
         true
     }
 
+    /// Places a tile on the first free slot on the board.
+    ///
+    /// NOTE: The method assumes there is still at least one free slot on the board and
+    /// that a tile can be placed on it without violating the rules of the game. Use
+    /// the `can_place(...)` method for verifying that precondition before actually
+    /// placing a tile.
     fn place_tile(&mut self, tile: Rc<Tile>) {
         match self.slots[self.first_empty_idx] {
             Some(_) => {
@@ -378,6 +432,9 @@ impl Board {
         }
     }
 
+    /// Removes a tile from the board currently placed at the highest slot index.
+    ///
+    /// NOTE: The method assumes there is at least one tile placed on the board already.
     fn remove_tile(&mut self) {
         match self.slots[self.first_empty_idx - 1] {
             Some(_) => {
@@ -390,6 +447,8 @@ impl Board {
         }
     }
 
+    /// A helpefr fucntion for returning the colors of a tile on a aprticular edge
+    /// and whether a color lives on the tile's reference edge.
     fn colors_info(tile: &Option<Rc<Tile>>, side: &RelPlacement) -> [(Color, bool); 2] {
         use Orientation::*;
         use RelPlacement::*;
@@ -409,6 +468,8 @@ impl Board {
         }
     }
 
+    /// Converts an edge color to a character sequence for printing the color in the
+    /// terminal.
     fn to_terminal_chars(colors: &[(Color, bool); 2]) -> [String; 2] {
         use TerminalStyle::*;
 
@@ -440,6 +501,8 @@ impl Board {
         result
     }
 
+    /// Prints a nicely rendered current state of the board, as well as the placement
+    /// of the tiles in a concise form (tile ID and its orientation).
     fn pretty_print(&self) {
         use RelPlacement::*;
         use TerminalStyle::{BOLD, RESET};
