@@ -2,12 +2,12 @@
 
 ## Overview
 
-Rubik's Tangle is a Rust library that provides a solver for the 3x3 double-sided Rubik's
-tangle puzzle.
+Rubik's Tangle is a Rust library that provides a solver for the 3x3 double-sided [Rubik's
+tangle](https://www.jaapsch.net/puzzles/tangle.htm) puzzle.
 
 It is essentially the same solver as the old
 [Python implementation](https://github.com/plamut/rubiks-tangle), but written in Rust
-as a practice when learning the language.
+for practice when learning the language.
 
 
 ## Usage
