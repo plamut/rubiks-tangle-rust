@@ -2,7 +2,9 @@
 name = "rubiks_tangle"
 version = "0.1.0"
 edition = "2021"
+description = "A solver for the 3x3 double-sided Rubik's tangle puzzle."
+license = "MIT"
+authors = ["Peter Lamut"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
